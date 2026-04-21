@@ -1,0 +1,7 @@
+MODEL:
+  VOLUME:
+    NAME: FullyConnectedMlpVolume
+    PE_CHANNELS: 384
+    EMBED_CHANNELS: 384
+    DEPTH: 3
+    PE_FEAT_SIGMA: 0.5

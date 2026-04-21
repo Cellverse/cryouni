@@ -1,0 +1,45 @@
+END USER LICENSE AGREEMENT
+
+Copyright (c), 2026, Cellverse, Co., Ltd (寰渺科技),
+All rights reserved.
+
+This repository contains both software source code and AI model weights/datasets. They are subject to different license terms as detailed below.
+
+====================================================================
+PART 1: MODEL WEIGHTS AND DATASETS
+====================================================================
+The model weights, parameters, checkpoints, and datasets contained in this repository are licensed under the Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+
+You are free to:
+- Share: copy and redistribute the material in any medium or format.
+- Adapt: remix, transform, and build upon the material.
+
+Under the following terms:
+- NonCommercial: You may not use the material for commercial purposes.
+
+To view a full copy of this license, visit:
+http://creativecommons.org/licenses/by-nc/4.0/legalcode
+
+====================================================================
+PART 2: SOURCE CODE
+====================================================================
+The source code contained in this repository is licensed under the PolyForm Noncommercial License 1.0.0.
+
+You may use, modify, and distribute the source code for non-commercial purposes (e.g., academic research, personal projects, non-profit organizations). Any commercial use, including but not limited to integrating the code into a commercial product, using it to provide a commercial service, or internal commercial deployment, is strictly prohibited without explicit written permission from the copyright holder.
+
+To view a full copy of this license, visit:
+https://polyformproject.org/licenses/noncommercial/1.0.0/
+
+====================================================================
+PART 3: COMMERCIAL LICENSING
+====================================================================
+The NonCommercial restriction applies to both the source code and the model weights. If you wish to use the source code, model weights, or any derivatives (including fine-tuned or modified models) for commercial purposes, you must obtain a separate Commercial License from the copyright holder.
+
+For commercial licensing inquiries, please contact:
+Email: contact@cellverse.tech
+Website: www.cellverse.tech
+
+====================================================================
+PART 4: DISCLAIMER OF WARRANTY
+====================================================================
+THE SOFTWARE, MODEL WEIGHTS, AND DATASETS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

@@ -1,0 +1,24 @@
+_BASE_: ../../coach_pl/configuration/base.yaml
+
+TRAINER:
+  STRATEGY: auto        # Set to `auto`, `ddp`, `deepspeed_stage_2`, `deepspeed_stage_3` ...
+  PRECISION: 16-mixed    # Options: `16-true`, `16-mixed`, `bf16-true`, `bf16-mixed`, `32-true`, `64-true`
+  CHECKPOINT:
+    EVERY_N_EPOCHS: 1   # Each time before a checkpoint is saved, the model will be evaluated on the validation set
+    SAVE_BEST: False    # If True, monitor will be required
+    MONITOR: null
+  MAX_EPOCHS: 50         # If profiler is enabled, this will be *automatically* set to 1
+  NUM_SANITY_VAL_STEPS: 0
+  LOG_EVERY_N_STEPS: 10
+  ACCUMULATE_GRAD_BATCHES: 1
+  CLIP_GRAD:
+    ALGORITHM: null
+    VALUE: null
+  DETERMINISTIC: False  # Set to True to enable cudnn.deterministic
+  BENCHMARK: True       # Set to True to enable cudnn.benchmark
+  PROFILER: null        # Set to `simple` or `advanced` or `pytorch` to enable profiling
+  DETECT_ANOMALY: False # Set to True to enable anomaly detection
+  SYNC_BATCHNORM: False # Set to True to enable sync batchnorm
+
+SEED: 42
+OUTPUT_DIR: null

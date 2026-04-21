@@ -1,0 +1,13 @@
+MODEL:
+  BACKBONE:
+    NAME: MAEViTLlama
+    PATCH_SIZE: 16
+    IN_CHANS: 1
+    VIT_SCALE: base
+    FINAL_NORM: false
+    DYNAMIC_IMG_SIZE: false
+    DYNAMIC_IMG_PAD: false
+    NUM_REGISTER_TOKENS: 4
+    DROP_PATH_RATE: 0
+    PRETRAINED_PATH: null
+    PRETRAINED_PREFIX: null

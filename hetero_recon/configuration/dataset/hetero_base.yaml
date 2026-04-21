@@ -1,0 +1,27 @@
+DATAMODULE:
+  DATALOADER:
+    TRAIN:
+      BATCH_SIZE: 32
+      NUM_WORKERS: 8
+
+  DATASET:
+    NAME: HeterogeneousReconstructionDataset
+    IMAGE_SIZE:
+      SPATIAL: null
+      HARTLEY: null
+    INPUT_IS_LIGHT_PARTICLES: true
+    PARTICLE_PATH: null
+    PARTICLE_DIR: null
+    POSES_PATH: null
+    CTF_PATH: null
+    INDICES_PATH: null
+    TRAIN_PARTICLES_NUM: -1
+    VAL_PARTICLES_NUM: -1
+    LAZY_MODE: true
+    CENTERLIZE_SPATIAL_IMAGE: false
+
+  SAMPLER:
+    NAME: null
+
+    TRAIN_PARTICLES_NUM: -1
+    VAL_PARTICLES_NUM: -1

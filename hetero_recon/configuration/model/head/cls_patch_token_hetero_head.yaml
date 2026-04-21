@@ -1,0 +1,7 @@
+MODEL:
+  HEAD:
+    NAME: ClassPatchTokenHeteroHead
+    EMBED_CHANNELS: 2
+    Z_CHANNELS: 8
+    Z_STD_INIT: 1.0
+    VARIATIONAL: true

@@ -1,0 +1,15 @@
+MODULE:
+  OPTIMIZER:
+    NAME: Adam
+    BASE_LR: 1.0e-4
+    HEAD_LR_SCALE: 1.0
+    PARAMS:
+      WEIGHT_DECAY: 0
+      BETAS: [0.9, 0.999]
+
+  SCHEDULER:
+    NAME: cosine
+    STEP_ON_EPOCHS: False
+    PARAMS:
+      WARMUP_LR: 1.0e-6
+      WARMUP_EPOCHS: 0
