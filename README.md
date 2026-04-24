@@ -1,8 +1,12 @@
-# CryoUNI: Cryo-EM as latent structural landscape microscopy
+[![bioRxiv Preprint](https://img.shields.io/badge/bioRxiv-Preprint-blue)](https://www.biorxiv.org/content/10.64898/2026.04.10.717737v2) | [![Zenodo Model](https://img.shields.io/badge/Zenodo-Model_Weights-1682b4)](https://doi.org/10.5281/zenodo.19513130)
 
-[[Paper]](#citation) | [[Model Weights]](https://zenodo.org/records/19513130)
+# Cryo-EM as latent structural landscape microscopy
 
-![overview](assets/cryouni.png)
+<p align="center">
+    <picture>
+        <img src="assets/cryouni.svg"/>
+    </picture>
+</p>
 
 CryoUNI is a universal pretrained encoder for cryo-EM particle images. It maps particles into a probabilistic latent space where density reflects the Boltzmann distribution of conformational states, enabling direct construction of conformational energy landscapes. Combined with **WAVE** (Watershed Analysis of Variational Embeddings), it provides an automated pipeline for conformational state identification, energy landscape analysis, and transition pathway planning.
 
@@ -19,16 +23,10 @@ CryoUNI is a universal pretrained encoder for cryo-EM particle images. It maps p
 ### Conda (recommended)
 
 ```bash
-git clone https://github.com/Cellverse/cryouni.git --recursive
-cd cryouni
+git clone https://github.com/Cellverse/cryouni.git --recursive && cd cryouni
+
 bash install.sh # creates conda env "cryouni" with all dependencies
 conda activate cryouni
-```
-
-### Docker
-
-```bash
-docker build -f dockerfile -t cryouni .
 ```
 
 ## Model Weights
@@ -53,6 +51,17 @@ Supported particle image formats:
 | STAR | `.star` | RELION star file. Requires separate poses and CTF pickle files |
 | cryoSPARC | `.cs` | cryoSPARC job output. Requires separate poses and CTF pickle files |
 | Text list | `.txt` | Text file listing particle `.mrcs` paths. Requires separate poses and CTF pickle files |
+
+### Published datasets
+
+Here are the public datasets used in the paper:
+
+| Dataset | Description | DOI |
+|---------|-------------|-----|
+| CryoBench Dataset | IgG-1D, Ribosembly, Tomotwin-100 | [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19592117.svg)](https://doi.org/10.5281/zenodo.19592117) |
+| EMPIAR-10345 Dataset | Integrin αvβ8 | [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19592995.svg)](https://doi.org/10.5281/zenodo.19592995) |
+| EMPIAR-11734 Dataset | KCTD5/CUL3^NTD/Gβγ Complex | [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19592853.svg)](https://doi.org/10.5281/zenodo.19592853) |
+| EMPIAR-12715 Dataset | LIS1-mediated Dynein Activation | [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19592956.svg)](https://doi.org/10.5281/zenodo.19592956) |
 
 ### Using non-HDF5 formats
 
