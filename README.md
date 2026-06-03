@@ -29,6 +29,15 @@ bash install.sh # creates conda env "cryouni" with all dependencies
 conda activate cryouni
 ```
 
+### Docker
+
+```bash
+git clone https://github.com/Cellverse/cryouni.git --recursive && cd cryouni
+
+docker build -f dockerfile -t cryouni .
+docker run -v $(pwd):/workspace/cryouni --gpus all --shm-size="1g" -it cryouni /bin/bash
+```
+
 ## Model Weights
 
 Download pretrained CryoUNI weights from [Zenodo](https://zenodo.org/records/19513130) (DOI: 10.5281/zenodo.19513130):
