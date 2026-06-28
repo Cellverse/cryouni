@@ -40,6 +40,42 @@ logger = setup_logger(__name__, rank_zero_only=True)
 __all__ = ["BaseModule"]
 
 
+def _unique_latents_by_index(z: np.ndarray, indices: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    z = np.asarray(z)
+    indices = np.asarray(indices).reshape(-1)
+    if z.ndim != 2:
+        raise ValueError("z must be a 2D latent array")
+    if len(z) != len(indices):
+        raise ValueError("z and indices must have the same first dimension")
+
+    unique_indices, first_positions = np.unique(indices, return_index=True)
+    order = np.argsort(unique_indices)
+    unique_indices = unique_indices[order].astype(np.int64, copy=False)
+    unique_z = z[first_positions[order]]
+    return unique_indices, unique_z
+
+
+def _save_latents_with_indices(output_dir: Path, z: np.ndarray, indices: np.ndarray) -> dict[str, np.ndarray]:
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    unique_indices, unique_z = _unique_latents_by_index(z, indices)
+
+    with (output_dir / "all_z.pkl").open("wb") as f:
+        pickle.dump(unique_z, f)
+    with (output_dir / "all_z_indices.pkl").open("wb") as f:
+        pickle.dump(unique_indices, f)
+    with (output_dir / "all_z_with_indices.pkl").open("wb") as f:
+        pickle.dump(
+            {
+                "latent_source": "z_mu",
+                "z_mu": unique_z,
+                "indices": unique_indices,
+            },
+            f,
+        )
+    return {"z": unique_z, "indices": unique_indices}
+
+
 class BaseModule(LightningModule, metaclass=ABCMeta):
     """
     A project-specific base module that extends PyTorch Lightning's LightningModule.
@@ -383,14 +419,7 @@ class BaseModule(LightningModule, metaclass=ABCMeta):
         if "z" in self.result:
             z = np.concatenate(self.result["z"])
             indices = np.concatenate(self.result["indices"])
-            _, first_idx = np.unique(indices, return_index=True)
-            z = z[first_idx]
-
-            # Save conformation
-            output_dir = self.root_dir
-            conformation_path = output_dir / "all_z.pkl"
-            with conformation_path.open("wb") as f:
-                pickle.dump(z, f)
+            _save_latents_with_indices(self.root_dir, z, indices)
 
     @torch.inference_mode()
     def save_volume(self) -> None:

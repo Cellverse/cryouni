@@ -99,11 +99,8 @@ class Starfile:
             mrcs = prefix_paths(mrcs, datadir)
         for path in set(mrcs):
             assert os.path.exists(path), f'{path} not found'
-        header = mrc.parse_header(mrcs[0])
-        D = header.D                             # image size along one dimension in pixels
-        dtype = header.dtype
-        stride = dtype().itemsize * D * D
-        dataset = [LazyImage(f, (D, D), dtype, 1024 + ii * stride) for ii, f in zip(ind, mrcs)]
+        header_cache = {}
+        dataset = [_lazy_image_from_mrc_stack(f, ii, header_cache) for ii, f in zip(ind, mrcs)]
         if not lazy:
             dataset = np.array([x.get() for x in dataset])
         return dataset
@@ -131,10 +128,21 @@ def csparc_get_particles(csfile, datadir=None, lazy=True):
         mrcs = prefix_paths(mrcs, datadir)
     for path in set(mrcs):
         assert os.path.exists(path), f'{path} not found'
-    D = metadata[0]['blob/shape'][0]
-    dtype = np.float32
-    stride = np.float32().itemsize * D * D
-    dataset = [LazyImage(f, (D, D), dtype, 1024 + ii * stride) for ii, f in zip(ind, mrcs)]
+    header_cache = {}
+    dataset = [_lazy_image_from_mrc_stack(f, ii, header_cache) for ii, f in zip(ind, mrcs)]
     if not lazy:
         dataset = np.array([x.get() for x in dataset])
     return dataset
+
+
+def _lazy_image_from_mrc_stack(path, index, header_cache):
+    header = header_cache.get(path)
+    if header is None:
+        header = mrc.parse_header(path)
+        header_cache[path] = header
+    index = int(index)
+    D = int(header.D)
+    dtype = header.dtype
+    stride = int(dtype().itemsize) * D * D
+    start = 1024 + int(header.fields['next'])
+    return LazyImage(path, (D, D), dtype, start + index * stride)
