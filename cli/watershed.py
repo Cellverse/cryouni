@@ -80,6 +80,7 @@ def main(
     gt_labels_path: Annotated[Path | None, typer.Option("--gt-labels", help="Path to ground truth labels pkl file")] = None,
     resolution: Annotated[int, typer.Option("--resolution", "-r", help="KDE resolution")] = None,
     bw_multiplier: Annotated[float | None, typer.Option("--bw-multiplier", help="Bandwidth multiplier for KDE")] = None,
+    peak_threshold_rel: Annotated[float, typer.Option("--peak-threshold-rel", help="Relative threshold for peak detection as a fraction of max density")] = 0.01,
 ) -> None:
     """
     Watershed-based clustering in reduced space.
@@ -136,6 +137,7 @@ def main(
         latent_vectors=all_z,
         resolution=resolution,
         bw_multiplier=bw_multiplier,
+        peak_threshold_rel=peak_threshold_rel,
     )
 
     # Process each delta_delta_g value

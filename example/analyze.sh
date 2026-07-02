@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+@#!/usr/bin/env bash
 # =============================================================================
 # WAVE: Conformational Landscape Analysis Pipeline
 #
@@ -48,9 +48,11 @@ python cli/dim_reduction.py \
 # Step 2: Peak Detection
 #
 # Detects density peaks across all PC pair/triplet combinations using KDE.
-# --max-pcs-2d: number of PCs for the 2D corner plot (C(n,2) pairs)
-# --max-pcs-3d: number of PCs for 3D triplet analysis (C(n,3) triplets)
-# --pcs-nd:     explicit PC indices for N-dimensional joint analysis
+# --max-pcs-2d:  number of PCs for the 2D corner plot (C(n,2) pairs)
+# --max-pcs-3d:  number of PCs for 3D triplet analysis (C(n,3) triplets)
+# --pcs-nd:      explicit PC indices for N-dimensional joint analysis
+# --peak-threshold-rel: relative threshold for peak detection (default: 0.01);
+#                       lower = more peaks (sensitive), higher = fewer peaks (stringent)
 # =============================================================================
 python cli/peak_detection.py \
     --out "$RESULT/peak_detection" \
@@ -59,7 +61,8 @@ python cli/peak_detection.py \
     --images "$IMAGES" \
     --max-pcs-2d 6 \
     --max-pcs-3d 4 \
-    --pcs-nd "0 1 2 3"
+    --pcs-nd "0 1 2 3" \
+    --peak-threshold-rel 0.01
 
 # =============================================================================
 # Step 3: Watershed Segmentation
@@ -82,7 +85,8 @@ python cli/watershed.py \
     --ckpt "$CKPT" \
     --images "$IMAGES" \
     --pc-dims "0 1" \
-    --delta-delta-g "1 2 3 4 None"
+    --delta-delta-g "1 2 3 4 None" \
+    --peak-threshold-rel 0.01
 
 # 3D watershed on PC0, PC1, PC2
 # python cli/watershed.py \
@@ -124,7 +128,8 @@ python cli/trajectory.py \
     --images "$IMAGES" \
     --pc-dims "0 1" \
     --method fmm \
-    --num-steps 120
+    --num-steps 120 \
+    --peak-threshold-rel 0.01
 
 # 2D trajectory with gradient-driven refinement
 # python cli/trajectory.py \
@@ -134,7 +139,8 @@ python cli/trajectory.py \
 #     --images "$IMAGES" \
 #     --pc-dims "0 1" \
 #     --method gradient \
-#     --num-steps 120
+#     --num-steps 120 \
+#     --peak-threshold-rel 0.01
 
 # 3D trajectory with Fast Marching Method
 # python cli/trajectory.py \
@@ -144,7 +150,8 @@ python cli/trajectory.py \
 #     --images "$IMAGES" \
 #     --pc-dims "0 1 2" \
 #     --method fmm \
-#     --num-steps 120
+#     --num-steps 120 \
+#     --peak-threshold-rel 0.01
 
 # 3D trajectory with gradient-driven refinement
 # python cli/trajectory.py \
@@ -154,4 +161,5 @@ python cli/trajectory.py \
 #     --images "$IMAGES" \
 #     --pc-dims "0 1 2" \
 #     --method gradient \
-#     --num-steps 120
+#     --num-steps 120 \
+#     --peak-threshold-rel 0.01

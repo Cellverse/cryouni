@@ -18,6 +18,7 @@ class WatershedSegmenter:
         latent_vectors: np.ndarray = None,
         resolution: int = None,
         bw_multiplier: float | None = None,
+        peak_threshold_rel: float = 0.01,
     ) -> None:
         """
         Args:
@@ -25,13 +26,15 @@ class WatershedSegmenter:
             `latent_vectors` (np.ndarray): Original latent vectors of shape [N, latent_dim].
             `resolution` (int): Grid resolution.
             `bw_multiplier` (float): Bandwidth multiplier for KDE.
+            `peak_threshold_rel` (float): Relative threshold for peak detection
+                as a fraction of the maximum density. Default: 0.01.
         """
         self.points = np.asarray(points)
         self.latent_vectors = latent_vectors
         self.ndim = self.points.shape[1]
 
         # Use PeakDetector for consistent peak detection
-        self.detector = PeakDetector(self.points, resolution=resolution, bw_multiplier=bw_multiplier)
+        self.detector = PeakDetector(self.points, resolution=resolution, bw_multiplier=bw_multiplier, peak_threshold_rel=peak_threshold_rel)
         self.grid, self.density = self.detector.get_density_grid()
 
         self._peak_indices = None

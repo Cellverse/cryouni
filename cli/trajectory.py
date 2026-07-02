@@ -146,6 +146,7 @@ def main(
     num_steps: Annotated[int, typer.Option("--num-steps", "-n", help="Number of frames in trajectory")] = 60,
     method: Annotated[str, typer.Option("--method", "-m", help="Trajectory planning method")] = "gradient",
     bw_multiplier: Annotated[float | None, typer.Option("--bw-multiplier", help="Bandwidth multiplier for KDE")] = None,
+    peak_threshold_rel: Annotated[float, typer.Option("--peak-threshold-rel", help="Relative threshold for peak detection as a fraction of max density")] = 0.01,
     close: Annotated[bool, typer.Option("--close/--open", "-e", help="Generate closed loop trajectory")] = True,
     noise_std: Annotated[float, typer.Option("--noise-std")] = 300.0,
 ) -> None:
@@ -208,7 +209,7 @@ def main(
     # Detect peaks for waypoints
     print(f"\n[4/5] Planning {ndim}D trajectory...")
     print("  - Detecting density peaks...")
-    detector = PeakDetector(pc_selected, bw_multiplier=bw_multiplier)
+    detector = PeakDetector(pc_selected, bw_multiplier=bw_multiplier, peak_threshold_rel=peak_threshold_rel)
     peak_coords = detector.get_peaks()
     print(f"  - Found {len(peak_coords)} peaks")
 

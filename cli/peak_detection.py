@@ -159,6 +159,7 @@ def analyze_peaks_2d(
     noise_std: float,
     max_components: int,
     bw_multiplier: float,
+    peak_threshold_rel: float = 0.01,
 ) -> None:
     """Analyze 2D PC pair combinations with corner plot and peak volumes."""
     n_pcs = min(max_components, pc.shape[1])
@@ -200,7 +201,7 @@ def analyze_peaks_2d(
             else:
                 print(f"Processing PC{col} vs PC{row}...")
 
-                detector = PeakDetector(pc[:, [col, row]], bw_multiplier=bw_multiplier)
+                detector = PeakDetector(pc[:, [col, row]], bw_multiplier=bw_multiplier, peak_threshold_rel=peak_threshold_rel)
                 peak_coords = detector.get_peaks()
                 print(f"  Found {len(peak_coords)} peaks")
 
@@ -268,6 +269,7 @@ def analyze_peaks_3d(
     noise_std: float,
     max_components: int,
     bw_multiplier: float,
+    peak_threshold_rel: float = 0.01,
 ) -> None:
     """Analyze 3D PC triplet combinations with peak detection and volumes."""
     n_pcs = min(max_components, pc.shape[1])
@@ -285,7 +287,7 @@ def analyze_peaks_3d(
         print(f"Processing PC{dim_x}, PC{dim_y}, PC{dim_z}...")
 
         # Detect peaks in 3D
-        detector = PeakDetector(pc[:, [dim_x, dim_y, dim_z]], bw_multiplier=bw_multiplier)
+        detector = PeakDetector(pc[:, [dim_x, dim_y, dim_z]], bw_multiplier=bw_multiplier, peak_threshold_rel=peak_threshold_rel)
         peak_coords = detector.get_peaks()
         print(f"  Found {len(peak_coords)} peaks")
 
@@ -340,6 +342,7 @@ def analyze_peaks_nd(
     output_dir: Path,
     noise_std: float,
     bw_multiplier: float,
+    peak_threshold_rel: float = 0.01,
 ) -> tuple[np.ndarray, int]:
     """
     Analyze N-dimensional PC space and export peak volumes without plotting.
@@ -358,6 +361,7 @@ def analyze_peaks_nd(
         output_dir: Directory to save volumes
         noise_std: Noise standard deviation for volume generation
         bw_multiplier: Bandwidth multiplier for peak detection
+        peak_threshold_rel: Relative threshold for peak detection as a fraction of max density
 
     Returns:
         tuple: (peak_coords, num_peaks) - coordinates of detected peaks and count
@@ -378,13 +382,13 @@ def analyze_peaks_nd(
 
     # Detect peaks in N-D space
     print(f"Processing {n}D analysis: PC{dims}...")
-    detector = PeakDetector(pc[:, dims], bw_multiplier=bw_multiplier)
+    detector = PeakDetector(pc[:, dims], bw_multiplier=bw_multiplier, peak_threshold_rel=peak_threshold_rel)
     peak_coords = detector.get_peaks()
     print(f"  Found {len(peak_coords)} peaks")
 
     # Plot peaks
     print(f"  Plotting peaks, only PC{dims[:3]} are shown...")
-    detector_plot = PeakDetector(pc[:, dims[: 3]], bw_multiplier=bw_multiplier)
+    detector_plot = PeakDetector(pc[:, dims[: 3]], bw_multiplier=bw_multiplier, peak_threshold_rel=peak_threshold_rel)
     detector_plot.peak_coords = detector.peak_coords[:, : 3]
     fig = plot_peak_3d(
         detector_plot,
@@ -438,6 +442,7 @@ def main(
     max_pcs_3d: Annotated[int, typer.Option("--max-pcs-3d", help="Maximum number of PCs for 3D analysis")] = 4,
     pcs_nd: Annotated[str, typer.Option("--pcs-nd", help="PCs for N-dimensional analysis")] = "0 1 2 3",
     bw_multiplier: Annotated[float, typer.Option("--bw-multiplier", help="Bandwidth multiplier")] = None,
+    peak_threshold_rel: Annotated[float, typer.Option("--peak-threshold-rel", help="Relative threshold for peak detection as a fraction of max density. Lower (e.g., 0.005) = more peaks (sensitive); higher (e.g., 0.05) = fewer peaks (stringent)")] = 0.01,
     noise_std: Annotated[float, typer.Option("--noise-std", help="Noise std for volume generation")] = 300.0,
 ) -> None:
     """Peak detection across PC combinations: 2D pairs, 3D triplets, N-D analysis.
@@ -474,16 +479,16 @@ def main(
 
     # Step 3a: Run 2D analysis
     print("\n3a. Creating 2D corner plot and detecting peaks...")
-    analyze_peaks_2d(pc, pca, model, dataset, output_dir, noise_std, max_components=max_pcs_2d, bw_multiplier=bw_multiplier)
+    analyze_peaks_2d(pc, pca, model, dataset, output_dir, noise_std, max_components=max_pcs_2d, bw_multiplier=bw_multiplier, peak_threshold_rel=peak_threshold_rel)
 
     # Step 3b: Run 3D analysis
     print("\n3b. Analyzing 3D PC triplets...")
-    analyze_peaks_3d(pc, pca, model, dataset, output_dir, noise_std, max_components=max_pcs_3d, bw_multiplier=bw_multiplier)
+    analyze_peaks_3d(pc, pca, model, dataset, output_dir, noise_std, max_components=max_pcs_3d, bw_multiplier=bw_multiplier, peak_threshold_rel=peak_threshold_rel)
 
     # Step 3c: Run nD analysis (example)
     pcs_nd_list = [int(x) for x in pcs_nd.split()]
     print(f"\n3c. Analyzing {len(pcs_nd_list)}D PC space...")
-    analyze_peaks_nd(pc, pca, pcs_nd_list, model, dataset, output_dir, noise_std, bw_multiplier=bw_multiplier)
+    analyze_peaks_nd(pc, pca, pcs_nd_list, model, dataset, output_dir, noise_std, bw_multiplier=bw_multiplier, peak_threshold_rel=peak_threshold_rel)
 
     # Summary
     print("\n" + "=" * 70)

@@ -31,7 +31,7 @@ class PeakDetector:
         >>> grid, density = detector.get_density_grid()
     """
 
-    def __init__(self, points: np.ndarray, resolution: int | None = None, bw_multiplier: float | None = None) -> None:
+    def __init__(self, points: np.ndarray, resolution: int | None = None, bw_multiplier: float | None = None, peak_threshold_rel: float = 0.01) -> None:
         self.points = points
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -47,7 +47,7 @@ class PeakDetector:
         self.density = density_torch.cpu().numpy()
 
         # Identify peaks using automated local maxima detection
-        self.peak_indices = self._find_maxima(self.density)
+        self.peak_indices = self._find_maxima(self.density, peak_threshold_rel=peak_threshold_rel)
         self.peak_coords = self._indices_to_coords(self.peak_indices)
 
     def get_peaks(self) -> np.ndarray:
@@ -77,12 +77,15 @@ class PeakDetector:
         return self.grid[tuple(indices.T)]
 
     @staticmethod
-    def _find_maxima(density: np.ndarray) -> np.ndarray:
+    def _find_maxima(density: np.ndarray, peak_threshold_rel: float = 0.01) -> np.ndarray:
         """
         Find local maxima in the density grid using statistical thresholding.
 
         Args:
             `density` (np.ndarray): Density grid of arbitrary shape.
+            `peak_threshold_rel` (float): Relative threshold for peak detection
+                as a fraction of the maximum density. Lower (e.g., 0.005) = more peaks
+                (sensitive); higher (e.g., 0.05) = fewer peaks (stringent). Default: 0.01.
 
         Returns:
             (np.ndarray): Indices of local maxima of shape [N_peaks, D].
@@ -93,7 +96,7 @@ class PeakDetector:
         density_max = maximum_filter(density, size=win_size, mode="constant")
 
         # Identify peaks: points that equal the filtered max and exceed threshold
-        threshold = density.max() * 0.01
+        threshold = density.max() * peak_threshold_rel
 
         # A point is a peak if it equals the local maximum and exceeds the threshold
         maxima_mask = (density == density_max) & (density > threshold)
