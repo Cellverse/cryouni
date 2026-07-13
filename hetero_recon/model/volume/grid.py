@@ -67,7 +67,7 @@ class GridVolume(Volume):
         return image
 
     @torch.inference_mode()
-    def eval_volume(self, conformations: torch.Tensor, noise_std, radius: int = None) -> torch.Tensor:
+    def eval_volume(self, conformations: torch.Tensor, noise_std, radius: int = None, volume_size: int = None) -> torch.Tensor:
         B = conformations.shape[0]
         D = self.hartley_image_size
         device = conformations.device
@@ -86,6 +86,15 @@ class GridVolume(Volume):
         # Scale and transform back to spatial domain
         volume_ht = volume_ht * noise_std
         volume_sp = uncircularize(ht_object.iht3_center(volume_ht), last_n_dims=3) # [B, D, D, D]
+
+        # Resample to target volume size in spatial domain
+        if volume_size is not None and volume_size != D:
+            volume_sp = F.interpolate(
+                volume_sp.unsqueeze(0),
+                size=(volume_size, volume_size, volume_size),
+                mode='trilinear', align_corners=False,
+            ).squeeze(0)
+
         return volume_sp
 
     def __repr__(self) -> str:

@@ -24,10 +24,12 @@ class Volume(nn.Module, metaclass=ABCMeta):
 
     @abstractmethod
     @torch.inference_mode()
-    def eval_volume(self, conformations: torch.Tensor) -> torch.Tensor:
+    def eval_volume(self, conformations: torch.Tensor, volume_size: int = None) -> torch.Tensor:
         """
         Args:
             `conformations` (torch.Tensor): Conformations of shape [B, C].
+            `volume_size` (int): Output spatial dimension (D) for the volume.
+                If None, uses the model's native hartley_image_size.
 
         Returns:
             `volume_sp` (torch.Tensor): Spatial domain volume of shape [D, D, D].

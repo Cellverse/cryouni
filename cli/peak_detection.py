@@ -86,8 +86,9 @@ def export_peak_volumes(
     output_dir: Path,
     noise_std: float,
     pc: np.ndarray | None = None,
-    use_nearest_point: bool = True,
+    not_on_data: bool = False,
     max_components: int | None = None,
+    volume_size: int | None = None,
 ) -> None:
     """Export MRC volumes for detected peaks.
 
@@ -95,13 +96,13 @@ def export_peak_volumes(
     """
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    if use_nearest_point:
-        if pc is None:
-            raise ValueError("pc must be provided when use_nearest_point=True")
-        final_pca_points = find_nearest_points(peak_coords, pc, dims)
-    else:
+    if not_on_data:
         n_components = max_components if max_components else pca.n_components_
         final_pca_points = create_zero_padded_pc_coords(peak_coords, n_components, dims)
+    else:
+        if pc is None:
+            raise ValueError("pc must be provided when not_on_data=False")
+        final_pca_points = find_nearest_points(peak_coords, pc, dims)
 
     # Pad if needed for inverse transform
     if final_pca_points.shape[1] < pca.n_components_:
@@ -114,7 +115,7 @@ def export_peak_volumes(
     with torch.no_grad():
         for idx, z_vec in enumerate(z_peaks):
             z_gpu = torch.from_numpy(z_vec).to(torch.device("cuda" if torch.cuda.is_available() else "cpu")).unsqueeze(0)
-            vol = model.volume.eval_volume(z_gpu, noise_std=noise_std)
+            vol = model.volume.eval_volume(z_gpu, noise_std=noise_std, volume_size=volume_size)
             save_volume(
                 output_dir / f"volume.{idx:02d}.mrc",
                 vol.detach().cpu().numpy().squeeze(),
@@ -160,11 +161,14 @@ def analyze_peaks_2d(
     max_components: int,
     bw_multiplier: float,
     peak_threshold_rel: float = 0.01,
+    not_on_data: bool = False,
+    volume_size: int | None = None,
 ) -> None:
     """Analyze 2D PC pair combinations with corner plot and peak volumes."""
     n_pcs = min(max_components, pc.shape[1])
     plots_dir = output_dir / "plots_2d"
     vols_dir = output_dir / "volumes_2d"
+    mode_dir = "off_data" if not_on_data else "on_data"
     plots_dir.mkdir(exist_ok=True)
     vols_dir.mkdir(exist_ok=True)
 
@@ -217,33 +221,18 @@ def analyze_peaks_2d(
                 fig_sub.savefig(plots_dir / f"PC{col}_PC{row}.png")
                 plt.close(fig_sub)
 
-                # Export peak volumes (both methods)
-                base_vol_dir = vols_dir / f"PC{col}_PC{row}"
-
-                # Nearest point method
+                # Export peak volumes
                 export_peak_volumes(
                     peak_coords,
                     [col, row],
                     pca,
                     model,
                     dataset,
-                    base_vol_dir / "nearest_point",
+                    vols_dir / f"PC{col}_PC{row}" / mode_dir,
                     noise_std,
                     pc=pc,
-                    use_nearest_point=True,
-                )
-
-                # Zero-padded method
-                export_peak_volumes(
-                    peak_coords,
-                    [col, row],
-                    pca,
-                    model,
-                    dataset,
-                    base_vol_dir / "zero_padded",
-                    noise_std,
-                    pc=pc,
-                    use_nearest_point=False,
+                    not_on_data=not_on_data,
+                    volume_size=volume_size,
                 )
 
             if row == n_pcs - 1:
@@ -270,11 +259,14 @@ def analyze_peaks_3d(
     max_components: int,
     bw_multiplier: float,
     peak_threshold_rel: float = 0.01,
+    not_on_data: bool = False,
+    volume_size: int | None = None,
 ) -> None:
     """Analyze 3D PC triplet combinations with peak detection and volumes."""
     n_pcs = min(max_components, pc.shape[1])
     plots_dir = output_dir / "plots_3d"
     vols_root = output_dir / "volumes_3d"
+    mode_dir = "off_data" if not_on_data else "on_data"
     plots_dir.mkdir(exist_ok=True)
     vols_root.mkdir(exist_ok=True)
 
@@ -301,35 +293,19 @@ def analyze_peaks_3d(
         fig.savefig(plots_dir / f"PC{dim_x}_PC{dim_y}_PC{dim_z}.png")
         plt.close(fig)
 
-        # Export peak volumes (both methods)
-        base_vol_dir = vols_root / f"PC{dim_x}_PC{dim_y}_PC{dim_z}"
-
-        # Nearest point method
+        # Export peak volumes
         export_peak_volumes(
             peak_coords,
             [dim_x, dim_y, dim_z],
             pca,
             model,
             dataset,
-            base_vol_dir / "nearest_point",
+            vols_root / f"PC{dim_x}_PC{dim_y}_PC{dim_z}" / mode_dir,
             noise_std,
             pc=pc,
-            use_nearest_point=True,
+            not_on_data=not_on_data,
             max_components=max_components,
-        )
-
-        # Zero-padded method
-        export_peak_volumes(
-            peak_coords,
-            [dim_x, dim_y, dim_z],
-            pca,
-            model,
-            dataset,
-            base_vol_dir / "zero_padded",
-            noise_std,
-            pc=pc,
-            use_nearest_point=False,
-            max_components=max_components,
+            volume_size=volume_size,
         )
 
 
@@ -343,14 +319,15 @@ def analyze_peaks_nd(
     noise_std: float,
     bw_multiplier: float,
     peak_threshold_rel: float = 0.01,
+    not_on_data: bool = False,
+    volume_size: int | None = None,
 ) -> tuple[np.ndarray, int]:
     """
     Analyze N-dimensional PC space and export peak volumes without plotting.
 
     This function performs peak detection in arbitrary N-dimensional PC space
-    and exports the corresponding 3D volumes in two ways:
-    1. Nearest point method: Find closest actual point in PC space
-    2. Zero-padded method: Use only specified dimensions, pad others with zeros
+    and exports the corresponding 3D volumes using either on-data snapping
+    (default) or zero-padded off-data coordinates.
 
     Args:
         pc: Principal component data of shape [N_samples, N_components]
@@ -362,6 +339,7 @@ def analyze_peaks_nd(
         noise_std: Noise standard deviation for volume generation
         bw_multiplier: Bandwidth multiplier for peak detection
         peak_threshold_rel: Relative threshold for peak detection as a fraction of max density
+        not_on_data: If True, use zero-padded off-data coordinates; otherwise snap to nearest data point
 
     Returns:
         tuple: (peak_coords, num_peaks) - coordinates of detected peaks and count
@@ -377,6 +355,7 @@ def analyze_peaks_nd(
     n = len(dims)
     plots_dir = output_dir / f"plots_{n}d"
     vols_root = output_dir / f"volumes_{n}d"
+    mode_dir = "off_data" if not_on_data else "on_data"
     plots_dir.mkdir(exist_ok=True)
     vols_root.mkdir(exist_ok=True)
 
@@ -400,30 +379,18 @@ def analyze_peaks_nd(
     fig.savefig(plots_dir / f"PC{dims[0]}_PC{dims[1]}_PC{dims[2]}.png")
     plt.close(fig)
 
-    # Nearest point method
+    # Export peak volumes
     export_peak_volumes(
         peak_coords,
         dims,
         pca,
         model,
         dataset,
-        vols_root / "nearest_point",
+        vols_root / mode_dir,
         noise_std,
         pc=pc,
-        use_nearest_point=True,
-    )
-
-    # Zero-padding method
-    export_peak_volumes(
-        peak_coords,
-        dims,
-        pca,
-        model,
-        dataset,
-        vols_root / "zero_padded",
-        noise_std,
-        pc=pc,
-        use_nearest_point=False,
+        not_on_data=not_on_data,
+        volume_size=volume_size,
     )
 
 
@@ -443,6 +410,8 @@ def main(
     pcs_nd: Annotated[str, typer.Option("--pcs-nd", help="PCs for N-dimensional analysis")] = "0 1 2 3",
     bw_multiplier: Annotated[float, typer.Option("--bw-multiplier", help="Bandwidth multiplier")] = None,
     peak_threshold_rel: Annotated[float, typer.Option("--peak-threshold-rel", help="Relative threshold for peak detection as a fraction of max density. Lower (e.g., 0.005) = more peaks (sensitive); higher (e.g., 0.05) = fewer peaks (stringent)")] = 0.01,
+    not_on_data: Annotated[bool, typer.Option("--not-on-data", help="Use zero-padded off-data coordinates instead of snapping to nearest data point")] = False,
+    volume_size: Annotated[int | None, typer.Option("--volume-size", help="Output volume spatial dimension (D×D×D). Default: use model's native size")] = None,
     noise_std: Annotated[float, typer.Option("--noise-std", help="Noise std for volume generation")] = 300.0,
 ) -> None:
     """Peak detection across PC combinations: 2D pairs, 3D triplets, N-D analysis.
@@ -479,38 +448,36 @@ def main(
 
     # Step 3a: Run 2D analysis
     print("\n3a. Creating 2D corner plot and detecting peaks...")
-    analyze_peaks_2d(pc, pca, model, dataset, output_dir, noise_std, max_components=max_pcs_2d, bw_multiplier=bw_multiplier, peak_threshold_rel=peak_threshold_rel)
+    analyze_peaks_2d(pc, pca, model, dataset, output_dir, noise_std, max_components=max_pcs_2d, bw_multiplier=bw_multiplier, peak_threshold_rel=peak_threshold_rel, not_on_data=not_on_data, volume_size=volume_size)
 
     # Step 3b: Run 3D analysis
     print("\n3b. Analyzing 3D PC triplets...")
-    analyze_peaks_3d(pc, pca, model, dataset, output_dir, noise_std, max_components=max_pcs_3d, bw_multiplier=bw_multiplier, peak_threshold_rel=peak_threshold_rel)
+    analyze_peaks_3d(pc, pca, model, dataset, output_dir, noise_std, max_components=max_pcs_3d, bw_multiplier=bw_multiplier, peak_threshold_rel=peak_threshold_rel, not_on_data=not_on_data, volume_size=volume_size)
 
     # Step 3c: Run nD analysis (example)
     pcs_nd_list = [int(x) for x in pcs_nd.split()]
     print(f"\n3c. Analyzing {len(pcs_nd_list)}D PC space...")
-    analyze_peaks_nd(pc, pca, pcs_nd_list, model, dataset, output_dir, noise_std, bw_multiplier=bw_multiplier, peak_threshold_rel=peak_threshold_rel)
+    analyze_peaks_nd(pc, pca, pcs_nd_list, model, dataset, output_dir, noise_std, bw_multiplier=bw_multiplier, peak_threshold_rel=peak_threshold_rel, not_on_data=not_on_data, volume_size=volume_size)
 
     # Summary
+    mode_dir_name = "off_data" if not_on_data else "on_data"
+    n = len(pcs_nd_list)
     print("\n" + "=" * 70)
     print("PEAK DETECTION COMPLETE")
     print("=" * 70)
     print(f"Output directory: {output_dir}")
+    mode_label = "off_data (zero-padded)" if not_on_data else "on_data (snap to nearest)"
     print(f"\nGenerated files:")
+    print(f"  Mode: {mode_label}")
     print(f"  2D Analysis:")
     print(f"    - pca_corner_plot.png (all PC pairs visualization)")
     print(f"    - plots_2d/ (individual high-resolution PC pair plots)")
-    print(f"    - volumes_2d/ (peak volumes organized by PC pair)")
-    print(f"      * nearest_point/ (volumes from nearest actual PC point)")
-    print(f"      * zero_padded/ (volumes with zero-padded dimensions)")
+    print(f"    - volumes_2d/ (peak volumes organized by PC pair/{mode_dir_name})")
     print(f"  3D Analysis:")
     print(f"    - plots_3d/ (3D visualizations for PC triplets)")
-    print(f"    - volumes_3d/ (peak volumes organized by PC triplet)")
-    print(f"      * nearest_point/ (volumes from nearest actual PC point)")
-    print(f"      * zero_padded/ (volumes with zero-padded dimensions)")
-    print(f"  4D Analysis:")
-    print(f"    - volumes_4d/ (peak volumes for 4D PC space)")
-    print(f"      * nearest_point/ (volumes from nearest actual PC point)")
-    print(f"      * zero_padded/ (volumes with zero-padded dimensions)")
+    print(f"    - volumes_3d/ (peak volumes organized by PC triplet/{mode_dir_name})")
+    print(f"  {n}D Analysis:")
+    print(f"    - volumes_{n}d/ (peak volumes for {n}D PC space/{mode_dir_name})")
     print("=" * 70)
 
 

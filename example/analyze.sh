@@ -1,4 +1,4 @@
-@#!/usr/bin/env bash
+#!/usr/bin/env bash
 # =============================================================================
 # WAVE: Conformational Landscape Analysis Pipeline
 #
@@ -31,6 +31,7 @@ CKPT=$RESULT/regular_ckpts/last.ckpt
 # Encodes all particles to latent vectors, runs PCA + UMAP, fits a GMM with
 # --cluster-num components, and generates volumes for each cluster center.
 # Latent vectors are cached to all_z.pkl and reused by subsequent steps.
+# --volume-size: spatial dimension of output volumes (default: model's native size)
 # =============================================================================
 python cli/dim_reduction.py \
     --out "$RESULT/dim_reduction" \
@@ -53,6 +54,8 @@ python cli/dim_reduction.py \
 # --pcs-nd:      explicit PC indices for N-dimensional joint analysis
 # --peak-threshold-rel: relative threshold for peak detection (default: 0.01);
 #                       lower = more peaks (sensitive), higher = fewer peaks (stringent)
+# --not-on-data: use zero-padded off-data coordinates (default: off, snap to nearest)
+# --volume-size:  spatial dimension of output volumes (default: model's native size)
 # =============================================================================
 python cli/peak_detection.py \
     --out "$RESULT/peak_detection" \
@@ -112,12 +115,15 @@ python cli/watershed.py \
 # --num-steps:  number of frames along the trajectory
 # --close/--open: closed loop (visits all peaks and returns) vs open path
 #
+# --not-on-data: use zero-padded off-data coordinates (default: off, snap to nearest)
+# --volume-size: spatial dimension of output volumes (default: model's native size)
+#
 # Outputs:
 #   trajectory.npy, waypoints.npy          -- path coordinates
 #   trajectory_summary.png                 -- visualization (2D/3D only)
 #   energy_profile.png                     -- -log(density) along path
-#   zero_padded/volume.*.mrc               -- volumes (zero-padded latent dims)
-#   nearest_point/volume.*.mrc             -- volumes (nearest actual particle)
+#   on_data/volume.*.mrc                   -- volumes (default, snap to nearest)
+#   off_data/volume.*.mrc                  -- volumes (with --not-on-data)
 # =============================================================================
 
 # 2D trajectory with Fast Marching Method (follows density ridges)

@@ -48,6 +48,7 @@ def main(
     checkpoint_path: Annotated[Path, typer.Option("--ckpt", "-p", help="Model checkpoint file", exists=True)],
     images_path: Annotated[Path, typer.Option("--images", "-i", help="HDF5 images dataset", exists=True)],
     cluster_num: Annotated[int, typer.Option("--cluster-num", "-k", help="Number of clusters")] = 10,
+    volume_size: Annotated[int | None, typer.Option("--volume-size", help="Output volume spatial dimension (D×D×D). Default: use model's native size")] = None,
     noise_std: Annotated[float, typer.Option("--noise-std", help="Noise std for volume generation")] = 300.0,
 ) -> None:
     """GPU-accelerated latent space analysis: reduction, clustering, visualization.
@@ -193,7 +194,7 @@ def main(
     print("  - Generating volumes for cluster centers...")
     for i, center_z in enumerate(tqdm(gmm_centers, desc="Volumes")):
         zval = torch.from_numpy(center_z).to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
-        volume = model.volume.eval_volume(zval, noise_std=noise_std, radius=None)
+        volume = model.volume.eval_volume(zval, noise_std=noise_std, radius=None, volume_size=volume_size)
         save_volume(gmm_vol_dir / f"volume.{i:03d}.mrc", volume.detach().cpu().numpy(), dataset.psize_A)
 
     # Save cluster indices as pickle files (instead of writing .star files)

@@ -12,8 +12,10 @@ CKPT=$RESULT/regular_ckpts/last.ckpt
 # PC Trajectory Sampling - Linear, Spiral, and Circle
 #
 # Generates a sequence of latent-space points along a PCA trajectory,
-# optionally snaps them to the nearest data point, and produces volumes
+# optionally snaps them to the nearest data point (default: on data, output to on_data/;
+# with --not-on-data uses off-manifold coordinates, output to off_data/), and produces volumes
 # for each frame. All three trajectory types are demonstrated below.
+# --volume-size: spatial dimension of output volumes (default: model's native size)
 # =============================================================================
 
 # 1. Linear trajectory along PC0 and PC1

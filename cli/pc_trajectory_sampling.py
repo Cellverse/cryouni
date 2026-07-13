@@ -39,6 +39,7 @@ def main(
     pc_dim: Annotated[str, typer.Option("--pc-dim", help="PC dimensions to sample along (e.g., 0 1)")] = "0",
     num_samples: Annotated[int, typer.Option("--num-samples", help="Number of points to sample along each dimension")] = 10,
     not_on_data: Annotated[bool, typer.Option("--not-on-data", help="Sample off the data manifold (otherwise snap to nearest data point)")] = False,
+    volume_size: Annotated[int | None, typer.Option("--volume-size", help="Output volume spatial dimension (D×D×D). Default: use model's native size")] = None,
     traj_type: Annotated[str, typer.Option("--traj-type", help="Type of trajectory")] = "linear",
     spiral_loops: Annotated[float, typer.Option("--spiral-loops", help="Number of loops for spiral trajectory")] = 3.0,
     spiral_scale: Annotated[float, typer.Option("--spiral-scale", help="Scale factor for spiral/circle radius (1.0 = auto fit to 95% data range)")] = 1.0,
@@ -50,7 +51,7 @@ def main(
     1. Encode particles to latent vectors (or load cached)
     2. Run PCA on latent vectors using LatentAnalysisPipeline
     3. Generate a trajectory in PCA space (linear, spiral, or circle)
-    4. Optionally snap trajectory points to the nearest data point
+    4. Optionally snap trajectory points to nearest data point (default: on data)
     5. Generate volumes for each trajectory point
     6. Visualize the trajectory in PCA space
     """
@@ -94,7 +95,8 @@ def main(
         traj_name = f"circle_dims_{pc_dim[0]}_{pc_dim[1]}_scale_{spiral_scale}_num_{num_samples}"
     else:  # linear
         traj_name = f"linear_dims_{'_'.join(map(str, pc_dim))}_num_{num_samples}"
-    save_dir = output_dir / traj_name
+    mode_dir_name = "off_data" if not_on_data else "on_data"
+    save_dir = output_dir / traj_name / mode_dir_name
     save_dir.mkdir(parents=True, exist_ok=True)
 
     # Generate trajectory in PCA space
@@ -145,7 +147,7 @@ def main(
     # (pca_model.inverse_transform works with numpy arrays)
     z_traj = pca_model.inverse_transform(traj_pca.astype(np.float32))
 
-    # Optionally snap to nearest data point
+    # Optionally snap to nearest data point (off by default)
     if not not_on_data:
         z_traj, _ = get_nearest_point(all_z, z_traj)
         print("Snapped trajectory points to nearest data points.")
@@ -193,7 +195,7 @@ def main(
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     for i, z in enumerate(tqdm(z_traj, desc="Volumes")):
         zval = torch.from_numpy(z).to(device)
-        volume = model.volume.eval_volume(zval, noise_std=noise_std, radius=None)
+        volume = model.volume.eval_volume(zval, noise_std=noise_std, radius=None, volume_size=volume_size)
         save_volume(save_dir / f"volume.{i:03d}.mrc", volume.detach().cpu().numpy(), dataset.psize_A)
 
     # Summary

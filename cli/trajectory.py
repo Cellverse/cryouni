@@ -81,7 +81,8 @@ def generate_volumes_from_trajectory(
     output_dir: Path,
     noise_std: float,
     pc: np.ndarray | None = None,
-    use_nearest_point: bool = True,
+    not_on_data: bool = False,
+    volume_size: int | None = None,
 ) -> np.ndarray:
     """Generate MRC volumes along trajectory in reduced space.
 
@@ -95,8 +96,9 @@ def generate_volumes_from_trajectory(
         `dataset`: Dataset with pixel size info.
         `output_dir` (Path): Directory to save volumes.
         `noise_std` (float): Noise std for volume generation.
-        `pc` (np.ndarray | None): Full PC array, required if use_nearest_point=True.
-        `use_nearest_point` (bool): If True, find nearest actual points; if False, zero-pad.
+        `pc` (np.ndarray | None): Full PC array, required if not_on_data=False.
+        `not_on_data` (bool): If True, use zero-padded off-data coordinates; otherwise snap to nearest.
+        `volume_size` (int | None): Output volume spatial dimension (D). None = use model's native size.
 
     Returns:
         `z_traj` (np.ndarray): Full latent trajectory of shape [N, latent_dim].
@@ -106,12 +108,12 @@ def generate_volumes_from_trajectory(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Choose coordinate generation method
-    if use_nearest_point:
-        if pc is None:
-            raise ValueError("pc must be provided when use_nearest_point=True")
-        final_traj_pca = find_nearest_points(trajectory, pc, pc_dims)
-    else:
+    if not_on_data:
         final_traj_pca = create_zero_padded_pc_coords(trajectory, pca.n_components_, pc_dims)
+    else:
+        if pc is None:
+            raise ValueError("pc must be provided when not_on_data=False")
+        final_traj_pca = find_nearest_points(trajectory, pc, pc_dims)
 
     # Pad if needed for inverse transform
     if final_traj_pca.shape[1] < pca.n_components_:
@@ -125,7 +127,7 @@ def generate_volumes_from_trajectory(
     with torch.no_grad():
         for idx, z in enumerate(tqdm(z_traj, desc="Generating volumes")):
             z_gpu = torch.from_numpy(z).to(torch.device("cuda" if torch.cuda.is_available() else "cpu")).unsqueeze(0)
-            vol = model.volume.eval_volume(z_gpu, noise_std=noise_std)
+            vol = model.volume.eval_volume(z_gpu, noise_std=noise_std, volume_size=volume_size)
             save_volume(
                 output_dir / f"volume.{idx:03d}.mrc",
                 vol.detach().cpu().numpy().squeeze(),
@@ -147,6 +149,8 @@ def main(
     method: Annotated[str, typer.Option("--method", "-m", help="Trajectory planning method")] = "gradient",
     bw_multiplier: Annotated[float | None, typer.Option("--bw-multiplier", help="Bandwidth multiplier for KDE")] = None,
     peak_threshold_rel: Annotated[float, typer.Option("--peak-threshold-rel", help="Relative threshold for peak detection as a fraction of max density")] = 0.01,
+    not_on_data: Annotated[bool, typer.Option("--not-on-data", help="Use zero-padded off-data coordinates instead of snapping to nearest data point")] = False,
+    volume_size: Annotated[int | None, typer.Option("--volume-size", help="Output volume spatial dimension (D×D×D). Default: use model's native size")] = None,
     close: Annotated[bool, typer.Option("--close/--open", "-e", help="Generate closed loop trajectory")] = True,
     noise_std: Annotated[float, typer.Option("--noise-std")] = 300.0,
 ) -> None:
@@ -247,35 +251,19 @@ def main(
 
     # Generate volumes
     print("\n[5/5] Generating volumes...")
-
-    # Generate zero-padded volumes
-    print("  - Generating zero_padded volumes...")
-    zero_padded_dir = traj_dir / "zero_padded"
+    mode_dir_name = "off_data" if not_on_data else "on_data"
+    vol_dir = traj_dir / mode_dir_name
     generate_volumes_from_trajectory(
         trajectory,
         pc_dims_list,
         pca,
         model,
         dataset,
-        zero_padded_dir,
-        noise_std,
-        pc=None,
-        use_nearest_point=False,
-    )
-
-    # Generate nearest-point volumes
-    print("  - Generating nearest_point volumes...")
-    nearest_point_dir = traj_dir / "nearest_point"
-    generate_volumes_from_trajectory(
-        trajectory,
-        pc_dims_list,
-        pca,
-        model,
-        dataset,
-        nearest_point_dir,
+        vol_dir,
         noise_std,
         pc=pc,
-        use_nearest_point=True,
+        not_on_data=not_on_data,
+        volume_size=volume_size,
     )
 
     # Summary
@@ -288,10 +276,7 @@ def main(
     if ndim <= 3:
         print(f"  - trajectory_summary.png")
     print(f"  - energy_profile.png")
-    print(f"  - zero_padded/")
-    print(f"    - trajectory_z.npy (latent coordinates)")
-    print(f"    - volume.*.mrc ({num_steps} volumes)")
-    print(f"  - nearest_point/")
+    print(f"  - {mode_dir_name}/")
     print(f"    - trajectory_z.npy (latent coordinates)")
     print(f"    - volume.*.mrc ({num_steps} volumes)")
     print("=" * 70)
