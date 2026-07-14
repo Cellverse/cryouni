@@ -3,6 +3,7 @@ from typing import Any
 from omegaconf import DictConfig
 import torch
 import torch.nn as nn
+from torch.nn import functional as F
 
 from cellverse.math_utils.frequency import ht_object, uncircularize
 from cellverse.math_utils.grid import get_frequency_grid
