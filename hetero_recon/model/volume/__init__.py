@@ -1,5 +1,6 @@
 from .build import build_volume
 from .grid import GridVolume
+from .hash import ConditionalHashGridVolume
 from .mlp import FullyConnectedMlpVolume
 from .volume import Volume
 

@@ -1,0 +1,24 @@
+_BASE_:
+  - base.yaml
+  - criterion/hetero_base.yaml
+  - dataset/hetero_base.yaml
+  - model/hetero_hash.yaml
+  - module/hetero_base.yaml
+
+DATAMODULE:
+  DATASET:
+    IMAGE_SIZE:
+      SPATIAL: 128
+      HARTLEY: 128
+    CENTERLIZE_SPATIAL_IMAGE: true
+    IGNORE_GT_POSES: false
+
+MODEL:
+  NAME: HeterogeneousOnlyReconstructor
+
+MODULE:
+  NAME: HeterogeneousOnlyModule
+
+TRAINER:
+  STRATEGY: ddp_find_unused_parameters_true
+  MAX_EPOCHS: 20

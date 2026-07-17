@@ -135,6 +135,23 @@ Supports the same particle formats as training: `.star`, `.cs`, `.mrc`, `.mrcs`,
 
 See [`example/train.sh`](example/train.sh) for single-GPU, multi-GPU, and SLURM multi-node training examples with annotated config overrides.
 
+An experimental real-space conditional hash-grid decoder is available through
+`hetero_recon/configuration/hetero_hash.yaml`. It keeps the existing encoder,
+Hartley-domain CTF model, and reconstruction loss, while replacing the Fourier
+coordinate MLP with a FiLM-conditioned real-space neural field and differentiable
+ray projector:
+
+```bash
+python train.py --config-file hetero_recon/configuration/hetero_hash.yaml \
+    DATAMODULE.DATASET.PARTICLE_PATH /path/to/particles.h5 \
+    MODEL.BACKBONE.PRETRAINED_PATH /path/to/cryouni-b.ckpt \
+    OUTPUT_DIR output/hash_reconstruction
+```
+
+The initial implementation uses a pure-PyTorch hash encoder as a correctness
+baseline. Fused CUDA rendering and local dynamic masks are intentionally left
+for subsequent performance and focused-refinement work.
+
 See [`example/analyze.sh`](example/analyze.sh) for the full WAVE pipeline: dimensionality reduction, peak detection, watershed segmentation, and trajectory planning.
 
 ### Training with pickle files directly

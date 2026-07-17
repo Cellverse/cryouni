@@ -1,0 +1,4 @@
+_BASE_:
+  - backbone/draco_b.yaml
+  - head/cls_patch_token_hetero_head.yaml
+  - volume/hash.yaml
